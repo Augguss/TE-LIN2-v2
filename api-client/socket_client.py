@@ -2,7 +2,7 @@ import socket
 
 
 def client_program():
-    host = "172.19.0.2"  #IP Server
+    host = "172.19.0.10"  #IP Server
     port = 5000  # socket server port number
 
     client_socket = socket.socket()  # instantiate

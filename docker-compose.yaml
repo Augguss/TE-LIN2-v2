@@ -1,4 +1,9 @@
 version: '3'
+networks:
+  net:
+    ipam:
+      config:
+      - subnet: 172.19.0.0/24
 services:
   server:
     build:
@@ -6,13 +11,23 @@ services:
       dockerfile: Dockerfile
     container_name: server
     restart: unless-stopped
-    ports:
-      - 5000:5000
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.10
   client:
     build:
       context: ./api-client/
       dockerfile: Dockerfile
     container_name: client
     restart: unless-stopped
+    ports:
+      - 5000:5000
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.20
     depends_on:
       - "server"
