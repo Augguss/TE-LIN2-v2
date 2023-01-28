@@ -91,7 +91,8 @@ Notre serveur fonctionne sur le port `5000` et il attendra la demande du client.
 import socket
 
 def client_program():
-    host = socket.gethostname()  # as both code is running on same pc
+    #host = socket.gethostname()  # as both code is running on same pc
+    host = "172.19.0.10"  #IP Server, added from original code
     port = 5000  # socket server port number
 
     client_socket = socket.socket()  # instantiate
@@ -135,8 +136,8 @@ Vous devrez faire un fork du dépôt `Github` afin de récupérer les deux appli
 
 ```
 FROM python:3.11
-WORKDIR /usr/src/app
-COPY ./socket_server.py .
+WORKDIR /app/
+COPY ./socket_server.py /app/
 EXPOSE 5000
 CMD [ "python", "./socket_server.py" ]
 ```
@@ -145,15 +146,21 @@ CMD [ "python", "./socket_server.py" ]
 
 ```
 FROM python:3.11
-WORKDIR /usr/src/app
-COPY ./socket_client.py .
-CMD [ "python", "./socket_server.py" ]
+WORKDIR /app/
+COPY ./socket_client.py /app/
+EXPOSE 5000
+CMD [ "python", "./socket_client.py" ]
 ```
 
 ### Docker Compose
 
 ```
 version: '3'
+networks:
+  net:
+    ipam:
+      config:
+      - subnet: 172.19.0.0/24
 services:
   server:
     build:
@@ -161,14 +168,24 @@ services:
       dockerfile: Dockerfile
     container_name: server
     restart: unless-stopped
-    ports:
-      - 5000:5000
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.10
   client:
     build:
       context: ./api-client/
       dockerfile: Dockerfile
     container_name: client
     restart: unless-stopped
+    ports:
+      - 5000:5000
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.20
     depends_on:
       - "server"
 ```
@@ -204,21 +221,71 @@ Un fichier `docker-compose-2.yaml` sera créé pour le déploiement des deux app
 
 ```
 version: '3'
+networks:
+  net:
+    ipam:
+      config:
+      - subnet: 172.19.0.0/24
 services:
   server:
-    build:
-      image: auggus/tedockerv1-server:v0.1
+    image: "auggus/te-lin2-v2_server:v0.1"
     container_name: server
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.10
+  client:
+    image: "auggus/te-lin2-v2_client:v0.1"
+    container_name: client
     restart: unless-stopped
     ports:
       - 5000:5000
-  client:
-    build:
-      image: auggus/tedockerv1-client:v0.1
-    container_name: client
-    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.20
     depends_on:
       - "server"
+```
+
+## Commandes
+
+```
+Commandes : 
+
+docker image build -t api-back:v0.1 . --no-cache
+docker container run -p 8001:8001 api-back:v0.1
+docker-compose up -d
+docker-compose -f docker-compose-2.yaml up -d
+
+docker attach 
+
+SSH Key for Github : 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDrOkZ9jB4pPcglxB9D0BZdzoaaE/4WZe4mWqVlJCdRDELC+xwfU0L0fU8+Wl1aTg7xsQXjFsr29ov7V/qbK7pjmZN1wiTwro0gkyPoEcLKOj6EgtB81/kolcaIJsjIovmFf1+EgdFGnhRPbvCre5Y1FzG/Ro1UzNgtF251eBXsLPVbkRpo6tlazvG+q7JpPQX5j1YtNrqoedV/WFUwlfoALwoBhp0kONv8mf5Z/YVNjpXZKf86x3VjyMETzz2yRorFxOsIOKjpJbpJnKRepBZBNPvASuQ6gez83LYGeSbw1M/sJbB8keuwxxvlHKapYuRoCJlXl8Q8gDe+Ealwif4i4sVHmy5w1rVxY805/9EwisFwpEAaDVOCmDDl+M9IneWnl5/fxDHM/xqZaAHyBEYC1LckFA4OpVU6+wtOW+VC9Dik7JVxiI6L5gpw5Ed533pMzpBNboCWd0wHAaphJu7eEkpIn5nGaWD3FDOr8du538hwRK8h8P5wc+GG0YDM1StEotzWFytyJbiwY1oAhZSKkfm+lRK+N0HFbdaOep7eMmIfX/JRPaMgod1g5TL6lOKm2GDhMf8I34nCR/1tfFDPdboE0OkQtT0mq3cZ0RtvlqKvWEdaG9Naf0MGWPwOgaJ2b53xvSoTwyfbhDooGfVBREle1lEI/ZS6Ian05l4vDQ== David-Manuel.VAROSO-GOMES@cpnv.ch
+
+docker tag te-lin2-v2_client:latest auggus/te-lin2-v2_client:v0.1
+docker push auggus/te-lin2-v2_client:v0.1
+
+docker tag te-lin2-v2_server:latest auggus/te-lin2-v2_server:v0.1
+docker push auggus/te-lin2-v2_server:v0.1
+
+ image: "auggus/te-lin2-v2_server:v0.1"
+ image: "auggus/te-lin2-v2_client:v0.1"
+
+### Supprimer tous les container et volumes 
+sudo docker rm -vf $(sudo docker ps -aq)
+
+### Supprimer tous les images 
+sudo docker rmi -f $(sudo docker images -aq)
+
+git add .
+git status
+
+git commit -m "tets"
+git push
 ```
 
 
@@ -249,13 +316,11 @@ Quelle est la commande pour exécuter le fichier docker-compose.yaml ?
 Quelle est la commande pour se connecter avec un terminal et interagir avec l'application serveur ?
 - docker exec -it <container_name> bash
 
-Quelle est la commande pour se connecter avec un terminal et interagir avec l'application serveur ?
-- docker exec -it <container_name> bash
-- docker attach server
-
 Quelle est la commande pour se connecter avec un terminal et interagir avec l'application cliente ?
 - docker exec -it <container_name> bash
-- docker attach client
+
+Quelle est la commande pour transformer le container serveur en une image ?
+- docker container commit <container id>
 
 Quelle est la commande pour pousser l'image précédemment créée sur dépôt personnel ?
 - docker push auggus/[img-name]
