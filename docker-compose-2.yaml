@@ -1,0 +1,29 @@
+version: '3'
+networks:
+  net:
+    ipam:
+      config:
+      - subnet: 172.19.0.0/24
+services:
+  server:
+    image: "auggus/te-lin2-v2_server:v0.1"
+    container_name: server
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.10
+  client:
+    image: "auggus/te-lin2-v2_client:v0.1"
+    container_name: client
+    restart: unless-stopped
+    ports:
+      - 5000:5000
+    stdin_open: true
+    tty: true
+    networks:
+      net:
+        ipv4_address: 172.19.0.20
+    depends_on:
+      - "server"
